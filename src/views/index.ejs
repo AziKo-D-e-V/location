@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Distance Calculation</title>
+    <style>
+      body {
+        background-color: aqua;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      #buttons {
+        margin-bottom: 20px;
+      }
+
+      #calculateDistance {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 26px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      #distanceOutput {
+        font-size: 34px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="calculateDistance"><a style="text-decoration: none;" href="/getall">Count All of Distance</a></button>
+    <br>
+    <div id="buttons">
+      <button id="calculateDistance">Calculate Distance</button>
+    </div>
+    <h2 id="distanceOutput"></h2>
+
+    <script>
+      document
+        .getElementById("calculateDistance")
+        .addEventListener("click", () => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(getDistance);
+          } else {
+            alert("Geolocation is not supported by this browser.");
+          }
+        });
+
+      function getDistance(position) {
+        const startLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        // Pre-entered default location
+        const endLocation = {
+          latitude: 41.2855109,
+          longitude: 69.2038697,
+        };
+        const distance = calculateHaversineDistance(startLocation, endLocation);
+        
+        const distanceInKm = distance.toFixed(2);
+        document.getElementById('distanceOutput').textContent = distanceInKm
+        document.getElementById('distanceOutput').innerHTML = `Distance: ${distanceInKm}`;
+
+        sendDistanceToBackend(distanceInKm, startLocation, endLocation);
+      }
+
+      function sendDistanceToBackend(distance, startLocation, endLocation) {
+        const data = {
+          distance: distance,
+          startLocation: startLocation,
+          endLocation: endLocation,
+        };
+
+        fetch("/send-distance", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ distance: data }),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            console.log("Response from server:", data);
+          })
+          .catch((error) => {
+            console.error("Error sending data:", error);
+          });
+      }
+
+      function calculateHaversineDistance(start, end) {
+        const earthRadiusKm = 6371; // Earth's radius in kilometers
+
+        const dLat = degreesToRadians(end.latitude - start.latitude);
+        const dLon = degreesToRadians(end.longitude - start.longitude);
+
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(degreesToRadians(start.latitude)) *
+            Math.cos(degreesToRadians(end.latitude)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = earthRadiusKm * c;
+
+        return distance;
+      }
+
+      function degreesToRadians(degrees) {
+        return degrees * (Math.PI / 180);
+      }
+    </script>
+  </body>
+</html>
+  
